@@ -42,7 +42,7 @@ public class StepDetector implements SensorEventListener {
     private static final int smoothingFactor = 7; //smoothing factor for the filter within the StepDetector
     private static final double window = 1.0; //window of analysis in seconds
     private static final double cooldown = 0.5; //cooldown between step increments
-
+    private long timestampOfLast = 0; //timestamp of the end of the last window
     public StepDetector() {
         mStepListeners = new ArrayList<>();
         mEventBuffer = new TreeMap<>();
@@ -90,6 +90,9 @@ public class StepDetector implements SensorEventListener {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             //TODO: Detect steps! Call onStepDetected(...) when a step is detected.
             mEventBuffer.put(event.timestamp, event.values); //time bounded buffer
+            if (timestampOfLast == 0) {
+                timestampOfLast = event.timestamp;
+            }
 
             long minimumTimestamp = event.timestamp - (long) (window * Math.pow(10, 9)); // dumps data that is a older than <window> seconds
             Object actualMinTimestamp = mEventBuffer.floorKey(minimumTimestamp); //no match returns null
@@ -100,7 +103,7 @@ public class StepDetector implements SensorEventListener {
             }
 
             //algorithm
-            if (event.timestamp > (cooldown * Math.pow(10, 9)) + mEventBuffer.firstKey()) {
+            if (event.timestamp > (cooldown * Math.pow(10, 9)) + timestampOfLast) {
 
                 //data set of <cooldown> or fewer seconds is not a sufficient sample size
                 TreeMap<Long, Float> map = new TreeMap<>();
@@ -127,6 +130,7 @@ public class StepDetector implements SensorEventListener {
                     // down turn of a wave where the slope is negative
                     if (top < bottom) {
                         onStepDetected(bottom, event.values); // send step signal
+                        timestampOfLast = event.timestamp;
                         mEventBuffer.clear(); //dump current window to prevent further analysis on that set of data
                     }
                 }
