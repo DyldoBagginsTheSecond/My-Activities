@@ -5,12 +5,10 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import cs.umass.edu.myactivitiestoolkit.processing.Filter;
 
@@ -20,15 +18,19 @@ import cs.umass.edu.myactivitiestoolkit.processing.Filter;
  * be notified when a step is detected.
  */
 public class StepDetector implements SensorEventListener {
-    /** Used for debugging purposes. */
+    /**
+     * Used for debugging purposes.
+     */
     @SuppressWarnings("unused")
 
     private static final String TAG = StepDetector.class.getName();
 
-    /** Maintains the set of listeners registered to handle step events. **/
+    /**
+     * Maintains the set of listeners registered to handle step events.
+     **/
     private ArrayList<OnStepListener> mStepListeners;
 
-    private ArrayList<SensorEvent> mEventBuffer;
+    private TreeMap<Long, float[]> mEventBuffer;
     /**
      * The number of steps taken.
      */
@@ -36,12 +38,13 @@ public class StepDetector implements SensorEventListener {
     private Filter mFilter;
 
     //tweakable values
-    private float minimumRange = 0.5f; //noise with a occurs within a bound that occurs <minimumRange> around the center
-    private int smoothingFactor = 2; //smoothing factor for the filter within the StepDetector
+    private static final float minimumRange = 0.3f; //noise with a occurs within a bound that occurs <minimumRange> around the center
+    private static final int smoothingFactor = 5; //smoothing factor for the filter within the StepDetector
+    private static final double window = 1.0; //window of analysis in seconds
 
-    public StepDetector(){
+    public StepDetector() {
         mStepListeners = new ArrayList<>();
-        mEventBuffer = new ArrayList<>();
+        mEventBuffer = new TreeMap<>();
         stepCount = 0;
         mFilter = new Filter(smoothingFactor);
 
@@ -49,24 +52,26 @@ public class StepDetector implements SensorEventListener {
 
     /**
      * Registers a step listener for handling step events.
+     *
      * @param stepListener defines how step events are handled.
      */
-    public void registerOnStepListener(final OnStepListener stepListener){
+    public void registerOnStepListener(final OnStepListener stepListener) {
         mStepListeners.add(stepListener);
     }
 
     /**
      * Unregisters the specified step listener.
+     *
      * @param stepListener the listener to be unregistered. It must already be registered.
      */
-    public void unregisterOnStepListener(final OnStepListener stepListener){
+    public void unregisterOnStepListener(final OnStepListener stepListener) {
         mStepListeners.remove(stepListener);
     }
 
     /**
      * Unregisters all step listeners.
      */
-    public void unregisterOnStepListeners(){
+    public void unregisterOnStepListeners() {
         mStepListeners.clear();
     }
 
@@ -74,7 +79,7 @@ public class StepDetector implements SensorEventListener {
      * Here is where you will receive accelerometer readings, buffer them if necessary
      * and run your step detection algorithm. When a step is detected, call
      * {@link #onStepDetected(long, float[])} to notify all listeners.
-     *
+     * <p>
      * Recall that human steps tend to take anywhere between 0.5 and 2 seconds.
      *
      * @param event sensor reading
@@ -82,16 +87,16 @@ public class StepDetector implements SensorEventListener {
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-
             //TODO: Detect steps! Call onStepDetected(...) when a step is detected.
-            mEventBuffer.add(event); //time bounded buffer
-            long minimumTimestamp = event.timestamp - (long) (1.5 * Math.pow(10, 9));
-            int upperRange = getNearestTimestampMatch(minimumTimestamp);
-            if (upperRange != -1) // If getNearestTimestampMatch() doesn't get a match
-            {
-                mEventBuffer.removeAll(mEventBuffer.subList(0, getNearestTimestampMatch(minimumTimestamp))); // dumps data that is a older than 1.5 seconds
-            }
+            mEventBuffer.put(event.timestamp, event.values); //time bounded buffer
 
+            long minimumTimestamp = event.timestamp - (long) (window * Math.pow(10, 9)); // dumps data that is a older than <window> seconds
+            Object actualMinTimestamp = mEventBuffer.floorKey(minimumTimestamp); //no match returns null
+            if (null != actualMinTimestamp) {
+                Map<Long, float[]> newBuffer = mEventBuffer.subMap((long) actualMinTimestamp, mEventBuffer.lastKey());
+                mEventBuffer.clear();
+                mEventBuffer.putAll(newBuffer);
+            }
 
             //algorithm
             if (mEventBuffer.size() > 3) {
@@ -100,13 +105,13 @@ public class StepDetector implements SensorEventListener {
                 TreeMap<Long, Float> map = new TreeMap<>();
 
                 //math function converts the three waveforms to a single signal
-                for (SensorEvent e : mEventBuffer) {
-                    double[] fValues = mFilter.getFilteredValues(event.values);
+                for (Long key : mEventBuffer.keySet()) {
+                    double[] fValues = mFilter.getFilteredValues(mEventBuffer.get(key));
                     for (int i = 0; i < fValues.length; i++) {
                         fValues[i] = Math.pow(fValues[i], 2);
                     }
                     double combined = Math.sqrt(fValues[0] + fValues[1] + fValues[2]);
-                    map.put(e.timestamp, (float) combined);
+                    map.put(key, (float) combined);
                 }
 
                 Collection<Float> list = map.values();
@@ -126,10 +131,10 @@ public class StepDetector implements SensorEventListener {
                 }
                 map.clear(); //gc
             }
-
         }
     }
-    private long getKeyByValue(float value,Map<Long,Float> map){
+
+    private long getKeyByValue(float value, Map<Long, Float> map) {
         long result = -1;
         for (long key :
                 map.keySet()) {
@@ -140,29 +145,6 @@ public class StepDetector implements SensorEventListener {
         return result;
     }
 
-    /*
-    *   returns index of nearest timestamp that is below the specified
-    *   returns -1 if none found
-    *
-    * */
-    private int getNearestTimestampMatch(long timestamp)
-    {
-        int result = -1;
-        long[] timestampArray = new long[mEventBuffer.size()];
-        TreeSet<Long> set = new TreeSet<>();
-        for (int i = 0; i < mEventBuffer.size(); i++) {
-            long stamp = mEventBuffer.get(i).timestamp;
-            timestampArray[i] = stamp;
-            set.add(stamp);
-        }
-        Object item = set.floor(timestamp);
-        if (null == item) {
-            return result;
-        }
-        result = Arrays.binarySearch(timestampArray, (Long) item);
-        set.clear();
-        return result;
-    }
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
         // do nothing
@@ -173,9 +155,9 @@ public class StepDetector implements SensorEventListener {
      * notifies all listeners that a step has occurred and also notifies all listeners
      * of the current step count.
      */
-    private void onStepDetected(long timestamp, float[] values){
+    private void onStepDetected(long timestamp, float[] values) {
         stepCount++;
-        for (OnStepListener stepListener : mStepListeners){
+        for (OnStepListener stepListener : mStepListeners) {
             stepListener.onStepDetected(timestamp, values);
             stepListener.onStepCountUpdated(stepCount);
         }
