@@ -92,6 +92,7 @@ public class StepDetector implements SensorEventListener {
                 mEventBuffer.removeAll(mEventBuffer.subList(0, getNearestTimestampMatch(minimumTimestamp))); // dumps data that is a older than 1.5 seconds
             }
 
+
             //algorithm
             if (mEventBuffer.size() > 3) {
 
