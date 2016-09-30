@@ -41,6 +41,7 @@ public class StepDetector implements SensorEventListener {
     private static final float minimumRange = 0.3f; //noise with a occurs within a bound that occurs <minimumRange> around the center
     private static final int smoothingFactor = 5; //smoothing factor for the filter within the StepDetector
     private static final double window = 1.0; //window of analysis in seconds
+    private static final double cooldown = 0.5; //cooldown between step increments
 
     public StepDetector() {
         mStepListeners = new ArrayList<>();
@@ -99,7 +100,7 @@ public class StepDetector implements SensorEventListener {
             }
 
             //algorithm
-            if (mEventBuffer.size() > 3) {
+            if (event.timestamp > cooldown + mEventBuffer.firstKey()) {
 
                 //data set of 3 or fewer is not a sufficient sample size
                 TreeMap<Long, Float> map = new TreeMap<>();
