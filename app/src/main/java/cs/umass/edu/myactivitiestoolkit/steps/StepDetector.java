@@ -3,6 +3,7 @@ package cs.umass.edu.myactivitiestoolkit.steps;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -101,9 +102,9 @@ public class StepDetector implements SensorEventListener {
                 mEventBuffer.clear();
                 mEventBuffer.putAll(newBuffer);
             }
-
+            Log.d(TAG, "onSensorChanged: " + mEventBuffer.size());
             //algorithm
-            if (event.timestamp > (cooldown * Math.pow(10, 9)) + timestampOfLast) {
+            if ((event.timestamp > (cooldown * Math.pow(10, 9)) + timestampOfLast) && mEventBuffer.size() > 3) {
 
                 //data set of <cooldown> or fewer seconds is not a sufficient sample size
                 TreeMap<Long, Float> map = new TreeMap<>();
