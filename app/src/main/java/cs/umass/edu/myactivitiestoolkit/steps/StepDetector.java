@@ -100,9 +100,9 @@ public class StepDetector implements SensorEventListener {
             }
 
             //algorithm
-            if (event.timestamp > cooldown + mEventBuffer.firstKey()) {
+            if (event.timestamp > (cooldown * Math.pow(10, 9)) + mEventBuffer.firstKey()) {
 
-                //data set of 3 or fewer is not a sufficient sample size
+                //data set of <cooldown> or fewer seconds is not a sufficient sample size
                 TreeMap<Long, Float> map = new TreeMap<>();
 
                 //math function converts the three waveforms to a single signal
