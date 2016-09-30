@@ -38,8 +38,8 @@ public class StepDetector implements SensorEventListener {
     private Filter mFilter;
 
     //tweakable values
-    private static final float minimumRange = 0.3f; //noise with a occurs within a bound that occurs <minimumRange> around the center
-    private static final int smoothingFactor = 5; //smoothing factor for the filter within the StepDetector
+    private static final float minimumRange = 0.8f; //noise with a occurs within a bound that occurs <minimumRange> around the center
+    private static final int smoothingFactor = 7; //smoothing factor for the filter within the StepDetector
     private static final double window = 1.0; //window of analysis in seconds
     private static final double cooldown = 0.5; //cooldown between step increments
 
