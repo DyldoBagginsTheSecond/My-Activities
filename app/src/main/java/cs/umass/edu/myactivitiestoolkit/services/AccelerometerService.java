@@ -183,7 +183,7 @@ public class AccelerometerService extends SensorService implements SensorEventLi
             }
         };
 
-        mSensorManager.registerListener(mStepDetector, mAccelerometerSensor, SensorManager.SENSOR_DELAY_UI);
+        mSensorManager.registerListener(mStepDetector, mAccelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
         mStepDetector.registerOnStepListener(stepListener);
     }
 
