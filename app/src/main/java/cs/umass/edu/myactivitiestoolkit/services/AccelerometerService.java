@@ -251,7 +251,7 @@ public class AccelerometerService extends SensorService implements SensorEventLi
             long timestamp_in_milliseconds = (long) ((double) event.timestamp / Constants.TIMESTAMPS.NANOSECONDS_PER_MILLISECOND);
 
             //TODO: Send the accelerometer reading to the server
-            mfilter = new Filter(0);
+            mfilter = new Filter(5);
 
             double[] dFilteredValues = mfilter.getFilteredValues(event.values);
             float[] fFilteredValues =  new float[3];
