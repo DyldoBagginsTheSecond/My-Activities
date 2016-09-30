@@ -3,6 +3,7 @@ package cs.umass.edu.myactivitiestoolkit.steps;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,10 +39,11 @@ public class StepDetector implements SensorEventListener {
     private Filter mFilter;
 
     //tweakable values
-    private static final float minimumRange = 0.3f; //noise with a occurs within a bound that occurs <minimumRange> around the center
-    private static final int smoothingFactor = 5; //smoothing factor for the filter within the StepDetector
+    private static final float minimumRange = 0.8f; //noise with a occurs within a bound that occurs <minimumRange> around the center
+    private static final int smoothingFactor = 7; //smoothing factor for the filter within the StepDetector
     private static final double window = 1.0; //window of analysis in seconds
-
+    private static final double cooldown = 0.5; //cooldown between step increments
+    private long timestampOfLast = 0; //timestamp of the end of the last window
     public StepDetector() {
         mStepListeners = new ArrayList<>();
         mEventBuffer = new TreeMap<>();
@@ -89,6 +91,9 @@ public class StepDetector implements SensorEventListener {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             //TODO: Detect steps! Call onStepDetected(...) when a step is detected.
             mEventBuffer.put(event.timestamp, event.values); //time bounded buffer
+            if (timestampOfLast == 0) {
+                timestampOfLast = event.timestamp;
+            }
 
             long minimumTimestamp = event.timestamp - (long) (window * Math.pow(10, 9)); // dumps data that is a older than <window> seconds
             Object actualMinTimestamp = mEventBuffer.floorKey(minimumTimestamp); //no match returns null
@@ -97,11 +102,11 @@ public class StepDetector implements SensorEventListener {
                 mEventBuffer.clear();
                 mEventBuffer.putAll(newBuffer);
             }
-
+            Log.d(TAG, "onSensorChanged: " + mEventBuffer.size());
             //algorithm
-            if (mEventBuffer.size() > 3) {
+            if ((event.timestamp > (cooldown * Math.pow(10, 9)) + timestampOfLast) && mEventBuffer.size() > 3) {
 
-                //data set of 3 or fewer is not a sufficient sample size
+                //data set of <cooldown> or fewer seconds is not a sufficient sample size
                 TreeMap<Long, Float> map = new TreeMap<>();
 
                 //math function converts the three waveforms to a single signal
@@ -126,6 +131,7 @@ public class StepDetector implements SensorEventListener {
                     // down turn of a wave where the slope is negative
                     if (top < bottom) {
                         onStepDetected(bottom, event.values); // send step signal
+                        timestampOfLast = event.timestamp;
                         mEventBuffer.clear(); //dump current window to prevent further analysis on that set of data
                     }
                 }
