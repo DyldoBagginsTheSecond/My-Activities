@@ -107,16 +107,48 @@
             </LinearLayout>
 
         </LinearLayout>
-        <TextView
-            android:id="@+id/txtActivity"
-            android:drawableStart="@drawable/ic_running_black_48dp"
-            android:text="@string/activity_initial"
-            android:textSize="20sp"
-            android:textColor="@android:color/holo_blue_dark"
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:gravity="center" />
+            android:orientation="horizontal"
+            android:id="@+id/layout_train">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_running_black_48dp"
+                tools:ignore="ContentDescription" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/txtActivity"
+                    android:text="@string/activity_initial"
+                    android:textSize="20sp"
+                    android:textColor="@android:color/holo_blue_dark"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center" />
+
+                <Spinner
+                    android:id="@+id/trainSelect"
+                    android:textSize="20sp"
+                    android:textColor="@android:color/holo_blue_dark"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:entries="@array/train_activity"
+                    android:prompt="@string/train_prompt"
+                    android:gravity="center" />
+            </LinearLayout>
+
+        </LinearLayout>
+
     </LinearLayout>
 
 

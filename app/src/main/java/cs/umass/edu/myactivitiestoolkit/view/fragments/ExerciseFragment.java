@@ -14,7 +14,9 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
+import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
@@ -230,6 +232,12 @@ public class ExerciseFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         final View view = inflater.inflate(R.layout.fragment_exercise, container, false);
+
+        Spinner staticSpinner = (Spinner) view.findViewById(R.id.trainSelect);
+        ArrayAdapter<CharSequence> staticAdapter = ArrayAdapter
+                .createFromResource(getActivity().getBaseContext(), R.array.train_activity, android.R.layout.simple_spinner_item);
+        staticAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        staticSpinner.setAdapter(staticAdapter);
 
         //obtain a reference to the accelerometer reading text field
         txtAccelerometerReading = (TextView) view.findViewById(R.id.txtAccelerometerReading);
