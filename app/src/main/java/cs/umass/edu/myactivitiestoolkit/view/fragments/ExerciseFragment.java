@@ -1,24 +1,34 @@
 package cs.umass.edu.myactivitiestoolkit.view.fragments;
 
+import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Fragment;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
+import android.support.v13.app.FragmentCompat;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.androidplot.util.PixelUtils;
 import com.androidplot.xy.BoundaryMode;
@@ -33,7 +43,9 @@ import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParsePosition;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Queue;
 
@@ -42,6 +54,7 @@ import cs.umass.edu.myactivitiestoolkit.constants.Constants;
 import cs.umass.edu.myactivitiestoolkit.services.msband.BandService;
 import cs.umass.edu.myactivitiestoolkit.services.AccelerometerService;
 import cs.umass.edu.myactivitiestoolkit.services.ServiceManager;
+import cs.umass.edu.myactivitiestoolkit.util.PermissionsUtil;
 
 /**
  * Fragment which visualizes the 3-axis accelerometer signal, displays the step count estimates and
@@ -156,6 +169,12 @@ public class ExerciseFragment extends Fragment {
     /** Reference to the service manager which communicates to the {@link AccelerometerService}. **/
     private ServiceManager mServiceManager;
 
+    /** Request code required for obtaining camera usage permission for photoplethysmography. **/
+    private static final int CAMERA_PERMISSION_REQUEST_CODE = 1;
+
+    /** Request code required for obtaining overlay permission for overlaying the camera preview. **/
+    private static final int OVERLAY_PERMISSION_REQUEST_CODE = 2;
+
     /**
      * The receiver listens for messages from the {@link AccelerometerService}, e.g. was the
      * service started/stopped, and updates the status views accordingly. It also
@@ -228,16 +247,25 @@ public class ExerciseFragment extends Fragment {
         this.mServiceManager = ServiceManager.getInstance(getActivity());
     }
 
+    public static Object getSpinnerValue() {
+        return activity;
+    }
+
+    static Object activity;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         final View view = inflater.inflate(R.layout.fragment_exercise, container, false);
 
+        requestPermissions();
         Spinner staticSpinner = (Spinner) view.findViewById(R.id.trainSelect);
         ArrayAdapter<CharSequence> staticAdapter = ArrayAdapter
                 .createFromResource(getActivity().getBaseContext(), R.array.train_activity, android.R.layout.simple_spinner_item);
         staticAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         staticSpinner.setAdapter(staticAdapter);
+
+        activity = staticSpinner.getSelectedItem();
 
         //obtain a reference to the accelerometer reading text field
         txtAccelerometerReading = (TextView) view.findViewById(R.id.txtAccelerometerReading);
@@ -358,6 +386,63 @@ public class ExerciseFragment extends Fragment {
             e.printStackTrace();
         }
         super.onStop();
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    public void requestPermissions(){
+        Log.d(TAG, "Requesting permission to use camera...");
+        List<String> permissionGroup = new ArrayList<>(Arrays.asList(new String[]{
+                Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE
+        }));
+
+        String[] permissions = permissionGroup.toArray(new String[permissionGroup.size()]);
+
+        if (!PermissionsUtil.hasPermissionsGranted(getActivity(), permissions)) {
+            FragmentCompat.requestPermissions(this, permissions, CAMERA_PERMISSION_REQUEST_CODE);
+            return;
+        }
+        Log.d(TAG, "Permission already granted");
+        checkDrawOverlayPermission();
+    }
+
+
+    /**
+     * Check the draw overlay permission. This is required to run the video recording service in
+     * a background service.
+     */
+    @TargetApi(Build.VERSION_CODES.M)
+    private void checkDrawOverlayPermission() {
+        /** check if we already  have permission to draw over other apps */
+        if (!Settings.canDrawOverlays(getContext().getApplicationContext())) {
+            /** if not, construct intent to request permission */
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse(getString(R.string.app_package_identifier_prefix) + getActivity().getPackageName()));
+            /** request permission via start activity for result */
+            startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case CAMERA_PERMISSION_REQUEST_CODE: {
+                //If the request is cancelled, the result array is empty.
+                if (grantResults.length == 0) return;
+
+                for (int i = 0; i < permissions.length; i++){
+                    if (grantResults[i] != PackageManager.PERMISSION_GRANTED){
+                        switch (permissions[i]) {
+                            case Manifest.permission.CAMERA:
+                                Toast.makeText(getActivity(), "You must grant camera permission to acquire PPG data.", Toast.LENGTH_LONG).show();
+                                return;
+                            default:
+                                return;
+                        }
+                    }
+                }
+                checkDrawOverlayPermission();
+            }
+        }
     }
 
     /**

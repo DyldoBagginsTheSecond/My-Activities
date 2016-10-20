@@ -42,7 +42,7 @@
     <string name="train_prompt">Training Activity</string>
     <string-array name="train_activity">
         <item>None</item>
-        <item>Sitting</item>
+        <item>Stationary</item>
         <item>Walking</item>
         <item>Jogging</item>
         <item>Jumping</item>

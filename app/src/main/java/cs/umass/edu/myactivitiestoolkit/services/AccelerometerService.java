@@ -1,5 +1,6 @@
 package cs.umass.edu.myactivitiestoolkit.services;
 
+import android.Manifest;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -7,6 +8,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.provider.Settings;
+import android.support.v13.app.FragmentCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
@@ -15,7 +17,11 @@ import org.apache.commons.lang.time.DateFormatUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedWriter;
 import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 import cs.umass.edu.myactivitiestoolkit.R;
@@ -23,6 +29,9 @@ import cs.umass.edu.myactivitiestoolkit.constants.Constants;
 import cs.umass.edu.myactivitiestoolkit.processing.Filter;
 import cs.umass.edu.myactivitiestoolkit.steps.OnStepListener;
 import cs.umass.edu.myactivitiestoolkit.steps.StepDetector;
+import cs.umass.edu.myactivitiestoolkit.storage.FileUtil;
+import cs.umass.edu.myactivitiestoolkit.util.PermissionsUtil;
+import cs.umass.edu.myactivitiestoolkit.view.fragments.ExerciseFragment;
 import edu.umass.cs.MHLClient.client.MessageReceiver;
 import edu.umass.cs.MHLClient.client.MobileIOClient;
 import edu.umass.cs.MHLClient.sensors.AccelerometerReading;
@@ -105,14 +114,14 @@ public class AccelerometerService extends SensorService implements SensorEventLi
 
     /** The step count as predicted by the Android built-in step detection algorithm. */
     private int mAndroidStepCount = 0;
-
     private int serverStepCount = 0;
-    private int mLocalStepCount = 0;
 
     private Filter mfilter;
     public AccelerometerService(){
         mStepDetector = new StepDetector();
     }
+
+    private final BufferedWriter writer = FileUtil.getFileWriter("ACCEL");
 
     @Override
     protected void onServiceStarted() {
@@ -153,6 +162,7 @@ public class AccelerometerService extends SensorService implements SensorEventLi
                     return;
                 }
                 // TODO : broadcast activity to UI
+                broadcastActivity(activity);
             }
         });
     }
@@ -197,6 +207,7 @@ public class AccelerometerService extends SensorService implements SensorEventLi
             mStepDetector.unregisterOnStepListeners();
             mSensorManager.unregisterListener(mStepDetector);
             mSensorManager.unregisterListener(this);
+            FileUtil.closeWriter(writer);
         }
     }
 
@@ -261,13 +272,30 @@ public class AccelerometerService extends SensorService implements SensorEventLi
                 fFilteredValues[i] = (float) dFilteredValues[i];
             }
 
+            int label = 0;
+            Object spinnerVal = ExerciseFragment.getSpinnerValue();
+            if (spinnerVal.toString().equals("Stationary")) {
+                label = 0;
+            } else if (spinnerVal.toString().equals("Walking")) {
+                label = 1;
+            } else if (spinnerVal.toString().equals("Jogging")) {
+                label = 2;
+            } else if (spinnerVal.toString().equals("Jumping")) {
+                label = 3;
+            }
 
             AccelerometerReading reading = new AccelerometerReading(
-                    this.mUserID, "MOBILE",
+                    this.mUserID,
+                    "MOBILE",
                     "",
                     timestamp_in_milliseconds,
+                    label,
                     fFilteredValues
             );
+
+            synchronized(writer) {
+                FileUtil.writeToFile(timestamp_in_milliseconds + "," + event.values[0] + "," + event.values[1] + "," + event.values[2] + "," + label, writer);
+            }
 
             mClient.sendSensorReading(reading);
 
@@ -349,6 +377,17 @@ public class AccelerometerService extends SensorService implements SensorEventLi
         intent.putExtra(Constants.KEY.ACCELEROMETER_PEAK_TIMESTAMP, timestamp);
         intent.putExtra(Constants.KEY.ACCELEROMETER_PEAK_VALUE, values);
         intent.setAction(Constants.ACTION.BROADCAST_ACCELEROMETER_PEAK);
+        LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
+        manager.sendBroadcast(intent);
+    }
+
+    /**
+     * Broadcasts the activity to  the main UI.
+     */
+    public void broadcastActivity(String activity) {
+        Intent intent = new Intent();
+        intent.putExtra(Constants.KEY.ACTIVITY, activity);
+        intent.setAction(Constants.ACTION.BROADCAST_ACTIVITY);
         LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
         manager.sendBroadcast(intent);
     }
