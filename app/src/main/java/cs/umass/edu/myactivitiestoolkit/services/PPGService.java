@@ -64,6 +64,7 @@ public class PPGService extends SensorService implements PPGListener
     protected void start() {
         Log.d(TAG, "START");
         mPPGSensor = new HeartRateCameraView(getApplicationContext(), null);
+        ppgFilter = new Filter(5);
 
         WindowManager winMan = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT,
@@ -164,13 +165,16 @@ public class PPGService extends SensorService implements PPGListener
     public void onSensorChanged(PPGEvent event) {
         Log.d(TAG, "PPG onSensorChanged");
         // TODO: Smooth the signal using a Butterworth / exponential smoothing filter
-        // TODO: send the data to the UI fragment for visualization, using broadcastPPGReading(...)
-        broadcastPPGReading(event.timestamp, event.value);
-        // TODO: Send the filtered mean red value to the server
-        broadcastServerPPG(event.value);
-        // TODO: Buffer data if necessary for your algorithm
-        // TODO: Call your heart beat and bpm detection algorithm
-        // TODO: Send your heart rate estimate to the server
+        double filtered[] = ppgFilter.getFilteredValues((float)event.value);
+        if(filtered.length > 0) {
+            // TODO: send the data to the UI fragment for visualization, using broadcastPPGReading(...)
+            broadcastPPGReading(event.timestamp, filtered[0]);
+            // TODO: Send the filtered mean red value to the server
+            broadcastServerPPG(filtered[0]);
+            // TODO: Buffer data if necessary for your algorithm
+            // TODO: Call your heart beat and bpm detection algorithm
+            // TODO: Send your heart rate estimate to the server
+        }
     }
 
     /**
