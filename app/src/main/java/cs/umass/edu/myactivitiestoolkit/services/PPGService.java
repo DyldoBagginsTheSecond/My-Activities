@@ -112,11 +112,13 @@ public class PPGService extends SensorService implements PPGListener
     @Override
     protected void registerSensors() {
         // TODO: Register a PPG listener with the PPG sensor (mPPGSensor)
+        mPPGSensor.registerListener(this);
     }
 
     @Override
     protected void unregisterSensors() {
         // TODO: Unregister the PPG listener
+        mPPGSensor.unregisterListener(this);
     }
 
     @Override
@@ -158,9 +160,12 @@ public class PPGService extends SensorService implements PPGListener
     @SuppressWarnings("deprecation")
     @Override
     public void onSensorChanged(PPGEvent event) {
+        Log.d(TAG, "PPG onSensorChanged");
         // TODO: Smooth the signal using a Butterworth / exponential smoothing filter
         // TODO: send the data to the UI fragment for visualization, using broadcastPPGReading(...)
+        broadcastPPGReading(event.timestamp, event.value);
         // TODO: Send the filtered mean red value to the server
+        broadcastServerPPG(event.value);
         // TODO: Buffer data if necessary for your algorithm
         // TODO: Call your heart beat and bpm detection algorithm
         // TODO: Send your heart rate estimate to the server
@@ -171,9 +176,19 @@ public class PPGService extends SensorService implements PPGListener
      * @param ppgReading the mean red value.
      */
     public void broadcastPPGReading(final long timestamp, final double ppgReading) {
+        Log.d(TAG, "broadcasting PPG to UI");
         Intent intent = new Intent();
         intent.putExtra(Constants.KEY.PPG_DATA, ppgReading);
         intent.putExtra(Constants.KEY.TIMESTAMP, timestamp);
+        intent.setAction(Constants.ACTION.BROADCAST_PPG);
+        LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
+        manager.sendBroadcast(intent);
+    }
+
+    public void broadcastServerPPG(double ppgReading) {
+        Log.d(TAG, "broadcasting PPG to Server");
+        Intent intent = new Intent();
+        intent.putExtra(Constants.KEY.PPG_DATA, ppgReading);
         intent.setAction(Constants.ACTION.BROADCAST_PPG);
         LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
         manager.sendBroadcast(intent);

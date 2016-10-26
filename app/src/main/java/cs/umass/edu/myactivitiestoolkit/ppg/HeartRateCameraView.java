@@ -225,7 +225,23 @@ public class HeartRateCameraView extends SurfaceView implements Callback, Camera
         //Collect color data and store them but now replacing each frame with new frame
         ImageFormatConverter.decodeYUV420SP(pixels, data, width, height);
 
-        //TODO: Compute the mean red value and notify all listeners
+        Double naiveMean = 0.0;
+        for(int i : pixels) {
+            int redValue = Color.red(i);
+//            Log.d(TAG, String.valueOf(redValue));
+            naiveMean += redValue;
+        }
+
+        naiveMean = naiveMean/pixels.length;
+//        Log.d(TAG, "Naive Mean: " + naiveMean);
+
+        PPGEvent ppgEvent = new PPGEvent(naiveMean, System.currentTimeMillis());
+
+        Log.d(TAG, "listener length: " + listeners.size());
+
+        for (PPGListener ppgListener : listeners) {
+            ppgListener.onSensorChanged(ppgEvent);
+        }
     }
 
     /**
