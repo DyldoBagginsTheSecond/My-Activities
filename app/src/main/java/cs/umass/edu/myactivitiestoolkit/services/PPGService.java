@@ -58,6 +58,8 @@ public class PPGService extends SensorService implements PPGListener
     /* Surface view responsible for collecting PPG data and displaying the camera preview. */
     private HeartRateCameraView mPPGSensor;
 
+    private Filter ppgFilter;
+
     @Override
     protected void start() {
         Log.d(TAG, "START");
@@ -176,7 +178,7 @@ public class PPGService extends SensorService implements PPGListener
      * @param ppgReading the mean red value.
      */
     public void broadcastPPGReading(final long timestamp, final double ppgReading) {
-        Log.d(TAG, "broadcasting PPG to UI");
+        Log.d(TAG, "broadcasting PPG to UI: " + timestamp + " reading: " + ppgReading);
         Intent intent = new Intent();
         intent.putExtra(Constants.KEY.PPG_DATA, ppgReading);
         intent.putExtra(Constants.KEY.TIMESTAMP, timestamp);
@@ -189,9 +191,9 @@ public class PPGService extends SensorService implements PPGListener
         Log.d(TAG, "broadcasting PPG to Server");
         Intent intent = new Intent();
         intent.putExtra(Constants.KEY.PPG_DATA, ppgReading);
-        intent.setAction(Constants.ACTION.BROADCAST_PPG);
-        LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
-        manager.sendBroadcast(intent);
+//        intent.setAction(Constants.ACTION.BROADCAST_PPG);
+//        LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
+//        manager.sendBroadcast(intent);
     }
 
     /**

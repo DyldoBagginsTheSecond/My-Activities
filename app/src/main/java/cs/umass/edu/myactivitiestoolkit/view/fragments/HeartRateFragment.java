@@ -155,7 +155,10 @@ public class HeartRateFragment extends Fragment {
                     if (heartRate != -1)
                         displayHeartRate(heartRate);
                 } else if (intent.getAction().equals(Constants.ACTION.BROADCAST_PPG)){
+//                    // testing
+//                    Log.d(TAG, "extracted timestamp: " + intent.getLongExtra(Constants.KEY.TIMESTAMP, -1));
                     long timestamp = intent.getLongExtra(Constants.KEY.TIMESTAMP, -1);
+//                    Log.d(TAG, "timestamp from view: " + timestamp);
                     double ppg = intent.getDoubleExtra(Constants.KEY.PPG_DATA, -1);
 
                     ppgTimestamps.add(timestamp);

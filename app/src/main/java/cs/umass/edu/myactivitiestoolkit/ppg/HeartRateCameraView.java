@@ -235,9 +235,11 @@ public class HeartRateCameraView extends SurfaceView implements Callback, Camera
         naiveMean = naiveMean/pixels.length;
 //        Log.d(TAG, "Naive Mean: " + naiveMean);
 
-        PPGEvent ppgEvent = new PPGEvent(naiveMean, System.currentTimeMillis());
+        long timestamp = System.currentTimeMillis();
+        PPGEvent ppgEvent = new PPGEvent(naiveMean, timestamp);
 
         Log.d(TAG, "listener length: " + listeners.size());
+        Log.d(TAG, "mean: " + naiveMean + ", timestamp: " + timestamp);
 
         for (PPGListener ppgListener : listeners) {
             ppgListener.onSensorChanged(ppgEvent);
