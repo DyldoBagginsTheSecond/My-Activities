@@ -190,30 +190,31 @@ public class PPGService extends SensorService implements PPGListener
             // TODO: send the data to the UI fragment for visualization, using broadcastPPGReading(...)
             broadcastPPGReading(event.timestamp, filtered[0]);
             // TODO: Send the filtered mean red value to the server
-            PPGSensorReading reading = new PPGSensorReading(mUserID, "MOBILE", mClient.toString(), event.timestamp, filtered[0]);
-            mClient.sendSensorReading(reading);
+            PPGSensorReading ppgReading = new PPGSensorReading(mUserID, "MOBILE", mClient.toString(), event.timestamp, filtered[0]);
+            mClient.sendSensorReading(ppgReading);
             // TODO: Buffer data if necessary for your algorithm
             // TODO: Call your heart beat and bpm detection algorithm
             processEvent(new PPGEvent(filtered[0], event.timestamp));
 
             int beats = timestamps.size();
             long time = 0;
-            if (beats > 2) {
+            if (beats > 2 && beats < 200) {
                 time = ((timestamps.get(beats - 1) - timestamps.get(0)));
                 double seconds = time / 1000;
 //                Log.i(TAG, "" + time);
 //                Log.i(TAG, "" + seconds);
-
-                double bpma = beats / seconds;
-                bpma = bpma * 60;
+                double bpma = beats * 60 / seconds;
                 bpm = (int) bpma;
                 Log.i(TAG, "bpm: " + bpm);
                 broadcastBPM(bpm);
+                HRSensorReading hrReading = new HRSensorReading(mUserID, "MOBILE", mClient.toString(), event.timestamp, bpm);
+                mClient.sendSensorReading(hrReading);
             }
             if (time > 60000) {
                 timestamps.remove(0);
             }
             // TODO: Send your heart rate estimate to the server
+
         }
     }
 
@@ -255,7 +256,7 @@ public class PPGService extends SensorService implements PPGListener
                 if (top < bottom) {
                     timestampOfLast = event.timestamp;
                     timestamps.add(top);
-                    broadcastPeak(bottom, lower);
+                    broadcastPeak(top, upper);
                     mEventBuffer.clear(); //dump current window to prevent further analysis on that set of data
                 }
             }
