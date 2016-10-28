@@ -10,16 +10,21 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.WindowManager;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.TreeMap;
+
 import cs.umass.edu.myactivitiestoolkit.R;
-import cs.umass.edu.myactivitiestoolkit.ppg.HRSensorReading;
-import cs.umass.edu.myactivitiestoolkit.ppg.PPGSensorReading;
 import cs.umass.edu.myactivitiestoolkit.constants.Constants;
+import cs.umass.edu.myactivitiestoolkit.ppg.HRSensorReading;
 import cs.umass.edu.myactivitiestoolkit.ppg.HeartRateCameraView;
 import cs.umass.edu.myactivitiestoolkit.ppg.PPGEvent;
 import cs.umass.edu.myactivitiestoolkit.ppg.PPGListener;
-import cs.umass.edu.myactivitiestoolkit.processing.FFT;
+import cs.umass.edu.myactivitiestoolkit.ppg.PPGSensorReading;
 import cs.umass.edu.myactivitiestoolkit.processing.Filter;
-import cs.umass.edu.myactivitiestoolkit.util.Interpolator;
 import edu.umass.cs.MHLClient.client.MobileIOClient;
 
 /**
@@ -59,12 +64,30 @@ public class PPGService extends SensorService implements PPGListener
     private HeartRateCameraView mPPGSensor;
 
     private Filter ppgFilter;
+    private TreeMap<Long, Double> mEventBuffer;
+    private ArrayList<Long> timestamps;
+    private PriorityQueue<Long> beattimes;
+    private int bpm;
+    private long timestampOfLast = 0;
+
+    //tweak
+    private static final double window = .1;
+    private static final double cooldown = .05;
+    private static final double minimumRange = .03;
+    private static final int smoothingFactor = 4;
+
+
+
+
 
     @Override
     protected void start() {
         Log.d(TAG, "START");
         mPPGSensor = new HeartRateCameraView(getApplicationContext(), null);
-        ppgFilter = new Filter(5);
+        ppgFilter = new Filter(smoothingFactor);
+        mEventBuffer = new TreeMap<>();
+        timestamps = new ArrayList<>();
+        beattimes = new PriorityQueue<>();
 
         WindowManager winMan = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT,
@@ -174,8 +197,75 @@ public class PPGService extends SensorService implements PPGListener
             mClient.sendSensorReading(reading);
             // TODO: Buffer data if necessary for your algorithm
             // TODO: Call your heart beat and bpm detection algorithm
+            processEvent(new PPGEvent(filtered[0], event.timestamp));
+
+            int beats = timestamps.size();
+            Log.i(TAG, "beats in window: " + beats);
+            if (beats > 2) {
+
+                bpm = (int) ((double) beats / ((timestamps.get(beats - 1) - timestamps.get(0)) / 60));
+                broadcastBPM(bpm);
+            }
             // TODO: Send your heart rate estimate to the server
         }
+    }
+
+    private void processEvent(PPGEvent event) {
+        mEventBuffer.put(event.timestamp, event.value);
+        if (timestampOfLast == 0) {
+            timestampOfLast = event.timestamp;
+        }
+        long minTimestamp = event.timestamp - (long) (window * Math.pow(10, 4));
+        Object actualMinTimestamp = mEventBuffer.floorKey(minTimestamp); //no match returns null
+
+        if (null != actualMinTimestamp) {
+            Map<Long, Double> newBuffer = mEventBuffer.subMap((long) actualMinTimestamp, mEventBuffer.lastKey());
+            mEventBuffer.clear();
+            mEventBuffer.putAll(newBuffer);
+            timestampOfLast = (long) actualMinTimestamp;
+        }
+
+        if ((event.timestamp > (cooldown * Math.pow(10, 3)) + timestampOfLast) && mEventBuffer.size() > 3) {
+
+            //data set of <cooldown> or fewer seconds is not a sufficient sample size
+            TreeMap<Long, Double> map = new TreeMap<>();
+
+            //separate holding map processing map
+            for (Long key : mEventBuffer.keySet()) {
+                map.put(key, mEventBuffer.get(key));
+            }
+
+            Collection<Double> list = map.values();
+            double upper = Collections.max(list);
+            double lower = Collections.min(list);
+            double center = (upper + lower) / 2;
+
+            // disregard noise at about center value
+            if (!(upper < center + minimumRange && lower > center - minimumRange)) {
+                long top = getKeyByValue(upper, map);
+                long bottom = getKeyByValue(lower, map);
+                // down turn of a wave where the slope is negative
+                if (top < bottom) {
+                    timestampOfLast = event.timestamp;
+                    timestamps.add(top);
+                    broadcastPeak(top, upper);
+                    mEventBuffer.clear(); //dump current window to prevent further analysis on that set of data
+                }
+            }
+            map.clear(); //gc
+        }
+
+    }
+
+    private long getKeyByValue(Double value, Map<Long, Double> map) {
+        long result = -1;
+        for (long key :
+                map.keySet()) {
+            if (map.get(key).equals(value)) {
+                result = key;
+            }
+        }
+        return result;
     }
 
     /**
