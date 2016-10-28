@@ -30,7 +30,6 @@ import cs.umass.edu.myactivitiestoolkit.processing.Filter;
 import cs.umass.edu.myactivitiestoolkit.steps.OnStepListener;
 import cs.umass.edu.myactivitiestoolkit.steps.StepDetector;
 import cs.umass.edu.myactivitiestoolkit.storage.FileUtil;
-import cs.umass.edu.myactivitiestoolkit.util.PermissionsUtil;
 import cs.umass.edu.myactivitiestoolkit.view.fragments.ExerciseFragment;
 import edu.umass.cs.MHLClient.client.MessageReceiver;
 import edu.umass.cs.MHLClient.client.MobileIOClient;

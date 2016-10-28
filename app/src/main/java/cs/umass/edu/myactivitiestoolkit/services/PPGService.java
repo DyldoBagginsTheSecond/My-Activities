@@ -170,7 +170,8 @@ public class PPGService extends SensorService implements PPGListener
             // TODO: send the data to the UI fragment for visualization, using broadcastPPGReading(...)
             broadcastPPGReading(event.timestamp, filtered[0]);
             // TODO: Send the filtered mean red value to the server
-            broadcastServerPPG(filtered[0]);
+            PPGSensorReading reading = new PPGSensorReading(mUserID, "MOBILE", mClient.toString(), event.timestamp, filtered[0]);
+            mClient.sendSensorReading(reading);
             // TODO: Buffer data if necessary for your algorithm
             // TODO: Call your heart beat and bpm detection algorithm
             // TODO: Send your heart rate estimate to the server
@@ -189,15 +190,6 @@ public class PPGService extends SensorService implements PPGListener
         intent.setAction(Constants.ACTION.BROADCAST_PPG);
         LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
         manager.sendBroadcast(intent);
-    }
-
-    public void broadcastServerPPG(double ppgReading) {
-        Log.d(TAG, "broadcasting PPG to Server");
-        Intent intent = new Intent();
-        intent.putExtra(Constants.KEY.PPG_DATA, ppgReading);
-//        intent.setAction(Constants.ACTION.BROADCAST_PPG);
-//        LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
-//        manager.sendBroadcast(intent);
     }
 
     /**
