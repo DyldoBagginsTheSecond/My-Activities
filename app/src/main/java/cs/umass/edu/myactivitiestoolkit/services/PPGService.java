@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.TreeMap;
 
 import cs.umass.edu.myactivitiestoolkit.R;
@@ -66,13 +65,12 @@ public class PPGService extends SensorService implements PPGListener
     private Filter ppgFilter;
     private TreeMap<Long, Double> mEventBuffer;
     private ArrayList<Long> timestamps;
-    private PriorityQueue<Long> beattimes;
     private int bpm;
     private long timestampOfLast = 0;
 
     //tweak
     private static final double window = .1;
-    private static final double cooldown = .05;
+    private static final double cooldown = .08;
     private static final double minimumRange = .03;
     private static final int smoothingFactor = 4;
 
@@ -87,7 +85,6 @@ public class PPGService extends SensorService implements PPGListener
         ppgFilter = new Filter(smoothingFactor);
         mEventBuffer = new TreeMap<>();
         timestamps = new ArrayList<>();
-        beattimes = new PriorityQueue<>();
 
         WindowManager winMan = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT,
@@ -200,11 +197,21 @@ public class PPGService extends SensorService implements PPGListener
             processEvent(new PPGEvent(filtered[0], event.timestamp));
 
             int beats = timestamps.size();
-            Log.i(TAG, "beats in window: " + beats);
+            long time = 0;
             if (beats > 2) {
+                time = ((timestamps.get(beats - 1) - timestamps.get(0)));
+                double seconds = time / 1000;
+//                Log.i(TAG, "" + time);
+//                Log.i(TAG, "" + seconds);
 
-                bpm = (int) ((double) beats / ((timestamps.get(beats - 1) - timestamps.get(0)) / 60));
+                double bpma = beats / seconds;
+                bpma = bpma * 60;
+                bpm = (int) bpma;
+                Log.i(TAG, "bpm: " + bpm);
                 broadcastBPM(bpm);
+            }
+            if (time > 60000) {
+                timestamps.remove(0);
             }
             // TODO: Send your heart rate estimate to the server
         }
@@ -248,7 +255,7 @@ public class PPGService extends SensorService implements PPGListener
                 if (top < bottom) {
                     timestampOfLast = event.timestamp;
                     timestamps.add(top);
-                    broadcastPeak(top, upper);
+                    broadcastPeak(bottom, lower);
                     mEventBuffer.clear(); //dump current window to prevent further analysis on that set of data
                 }
             }
