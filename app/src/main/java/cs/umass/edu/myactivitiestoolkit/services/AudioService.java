@@ -143,6 +143,8 @@ public class AudioService extends SensorService implements MicrophoneRecorder.Mi
         Log.d(TAG, String.valueOf(buffer.length));
 
         //TODO: Send the audio buffer to the server
+        AudioBufferReading audio = new AudioBufferReading(mUserID, "MOBILE", mClient.toString(), 0, buffer);
+        mClient.sendSensorReading(audio);
 
         //convert short[] to double[] for computing spectrogram
         double[] dBuffer = new double[buffer.length];
