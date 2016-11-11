@@ -19,12 +19,13 @@ import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import cs.umass.edu.myactivitiestoolkit.R;
 import cs.umass.edu.myactivitiestoolkit.constants.Constants;
-import cs.umass.edu.myactivitiestoolkit.services.AudioService;
 import cs.umass.edu.myactivitiestoolkit.services.AccelerometerService;
+import cs.umass.edu.myactivitiestoolkit.services.AudioService;
 import cs.umass.edu.myactivitiestoolkit.services.PPGService;
 import cs.umass.edu.myactivitiestoolkit.services.ServiceManager;
 import cs.umass.edu.myactivitiestoolkit.util.PermissionsUtil;
@@ -58,6 +59,7 @@ public class AudioFragment extends Fragment {
     /** Reference to the service manager which communicates to the {@link PPGService}. **/
     private ServiceManager serviceManager;
 
+    private TextView txtSpeakerID;
     /**
      * The receiver listens for messages from the {@link AccelerometerService}, e.g. was the
      * service started/stopped, and updates the status views accordingly. It also
@@ -75,6 +77,8 @@ public class AudioFragment extends Fragment {
                 } else if (intent.getAction().equals(Constants.ACTION.BROADCAST_SPECTROGRAM)){
                     double[][] spectrogram = (double[][]) intent.getSerializableExtra(Constants.KEY.SPECTROGRAM);
                     updateSpectrogram(spectrogram);
+                } else if (intent.getAction().equals(Constants.ACTION.BROADCAST_SPEAKER)) {
+                    displaySpeaker(intent.getSerializableExtra(Constants.KEY.SPEAKER).toString());
                 }
             }
         }
@@ -103,6 +107,7 @@ public class AudioFragment extends Fragment {
             }
         });
         imgSpectrogram = (ImageView) rootView.findViewById(R.id.imgSpectrogram);
+        txtSpeakerID = (TextView) rootView.findViewById(R.id.txtSpeakerID);
         return rootView;
     }
 
@@ -231,6 +236,14 @@ public class AudioFragment extends Fragment {
         imgSpectrogram.setImageBitmap(bitmap);
     }
 
+    private void displaySpeaker(final String speaker) {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtSpeakerID.setText("Speaker is" + String.valueOf(speaker));
+            }
+        });
+    }
     /**
      * Converts the value to a corresponding heat map color
      * @param minimum the minimum bound on the value

@@ -14,7 +14,8 @@ public class Constants {
     public interface ACTION {
         String BROADCAST_MESSAGE = "edu.umass.cs.my-activities-toolkit.action.broadcast-message";
         String BROADCAST_STATUS = "edu.umass.cs.my-activities-toolkit.action.broadcast-status";
-        String BROADCAST_SPECTROGRAM = "edu.umass.cs.my-activities-toolkit.action.broadcast-spectrogram";
+        String BROADCAST_SPECTROGRAM = "edu.umass.cs.my-activities-toolkit.action.broadcast-spectrogram"; // added as part of A3
+        String BROADCAST_SPEAKER = "edu.umass.cs.my-activities-toolkit.action.broadcast-spectrogram";
         String BROADCAST_ACCELEROMETER_DATA = "edu.umass.cs.my-activities-toolkit.action.broadcast-accelerometer-data";
         String BROADCAST_ANDROID_STEP_COUNT = "edu.umass.cs.my-activities-toolkit.action.broadcast-android-step-count";
         String BROADCAST_LOCAL_STEP_COUNT = "edu.umass.cs.my-activities-toolkit.action.broadcast-local-step-count";
@@ -42,6 +43,7 @@ public class Constants {
     /** Keys to identify key-value data sent to/from the sensor service */
     public interface KEY {
         String SPECTROGRAM = "edu.umass.cs.my-activities-toolkit.key.spectrogram";
+        String SPEAKER = "edu.umass.cs.my-activities-toolkit.key.speaker"; // added as part of A3
         String ACTIVITY = "edu.umass.cs.my-activities-toolkit.key.activity";
         String MESSAGE = "edu.umass.cs.my-activities-toolkit.key.message";
         String STATUS = "edu.umass.cs.my-activities-toolkit.key.status";

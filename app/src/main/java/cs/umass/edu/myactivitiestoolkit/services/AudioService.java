@@ -89,6 +89,7 @@ public class AudioService extends SensorService implements MicrophoneRecorder.Mi
                     return;
                 }
                 // TODO: Send the speaker to the UI
+                broadcastSpeaker(speaker);//method that sends the speaker to the UI
             }
         });
         super.onConnected();
@@ -141,11 +142,21 @@ public class AudioService extends SensorService implements MicrophoneRecorder.Mi
     @Override
     public void microphoneBuffer(short[] buffer, int window_size) {
         Log.d(TAG, String.valueOf(buffer.length));
-
+        Long timestamp = System.currentTimeMillis() / 1000L;
         //TODO: Send the audio buffer to the server
-        AudioBufferReading audio = new AudioBufferReading(mUserID, "MOBILE", mClient.toString(), 0, buffer);
-        mClient.sendSensorReading(audio);
 
+//        AudioBufferReading audio = new AudioBufferReading(mUserID, "MOBILE", mClient.toString(), 0, buffer);
+//        mClient.sendSensorReading(audio);
+
+        AudioBufferReading reading = new AudioBufferReading(
+                this.mUserID,
+                "MOBILE",
+                "",
+                timestamp,
+                buffer
+        );
+        mClient.sendSensorReading(reading);
+        
         //convert short[] to double[] for computing spectrogram
         double[] dBuffer = new double[buffer.length];
         for (int j=0;j<buffer.length;j++) {
@@ -157,5 +168,19 @@ public class AudioService extends SensorService implements MicrophoneRecorder.Mi
 
         //broadcast to UI
         broadcastSpectrogram(spectrogram);
+    }
+
+    /**
+     * Sends data speaker to UI when called
+     *
+     * @param speaker
+     */
+    public void broadcastSpeaker(String speaker) {
+        Log.d(TAG, "broadcasting speakerID to UI: " + speaker);
+        Intent intent = new Intent();
+        intent.putExtra(Constants.KEY.SPEAKER, speaker); // new constant added to Constants file to add SPEAKER as a KEY
+        intent.setAction(Constants.ACTION.BROADCAST_SPEAKER); // new constant added to Constanst file to add BROADCAST_SPEAKER as an ACTION
+        LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
+        manager.sendBroadcast(intent);
     }
 }
