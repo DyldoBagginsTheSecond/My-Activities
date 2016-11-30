@@ -62,8 +62,10 @@ public class LocationService extends SensorService implements LocationListener {
         Log.d(TAG, "Starting location manager");
         locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
-                MIN_TIME,
-                MIN_DISTANCE,
+//                MIN_TIME,
+//                MIN_DISTANCE,
+                0,
+                0,
                 this,
                 getMainLooper());
 
@@ -106,16 +108,19 @@ public class LocationService extends SensorService implements LocationListener {
 
     @Override
     public void onStatusChanged(String s, int i, Bundle bundle) {
-
+        Log.d(TAG, "status changed");
+        Log.d(TAG, s);
     }
 
     @Override
     public void onProviderEnabled(String s) {
-
+        Log.d(TAG, "provider enabled");
+        Log.d(TAG, s);
     }
 
     @Override
     public void onProviderDisabled(String s) {
-
+        Log.d(TAG, "provider disabled");
+        Log.d(TAG, s);
     }
 }
