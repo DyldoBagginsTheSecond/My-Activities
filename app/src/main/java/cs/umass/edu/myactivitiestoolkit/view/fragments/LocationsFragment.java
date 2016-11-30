@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.util.ArrayMap;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -43,6 +44,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -368,6 +370,15 @@ public class LocationsFragment extends Fragment {
     private void drawClusters(final Collection<Cluster<GPSLocation>> clusters){
         final int[] colors = new int[]{Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.CYAN, Color.WHITE};
         // TODO: For each cluster, draw a convex hull around the points in a sufficiently distinct color
+
+        Log.d(TAG, "drawing clusters");
+
+        int ind = 0;
+        for(Cluster<GPSLocation> cluster: clusters) {
+            GPSLocation[] locationArray = new GPSLocation[cluster.size()];
+            cluster.getPoints().toArray(locationArray);
+            drawHullFromPoints(locationArray, colors[(ind++ % colors.length)]);
+        }
     }
 
     /**
@@ -378,7 +389,13 @@ public class LocationsFragment extends Fragment {
      * @param minPts the minimum number of points in a neighborhood.
      */
     private void runDBScan(GPSLocation[] locations, float eps, int minPts){
+        Log.d(TAG, "about to run dbscan on " + locations.length + " points");
         //TODO: Cluster the locations by calling DBScan.
+        DBScan<GPSLocation> dbScan = new DBScan<>(eps, minPts);
+        List<GPSLocation> locationList = new ArrayList<>(Arrays.asList(locations));
+        Collection<Cluster<GPSLocation>> clusters = dbScan.cluster(locationList);
+        Log.d(TAG, "about to draw " + clusters.size() + " clusters");
+        drawClusters(clusters);
     }
 
     /**
