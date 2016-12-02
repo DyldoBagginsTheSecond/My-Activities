@@ -107,17 +107,19 @@ public class DBScan<T extends Clusterable<T>> {
                 } else {
                     currCluster = new Cluster<T>();
                     expandCluster(currCluster, point, states, neighbors, points);
+                    clusters.add(currCluster);
                 }
             }
         }
 
+
         //TODO: The following block of code adds all points to a single cluster. Make sure to remove this!
-        {
+        /*{
             Cluster<T> fakeCluster = new Cluster<T>();
             for (final T p : points)
                 fakeCluster.addPoint(p);
             clusters.add(fakeCluster);
-        }
+        }*/
 
         return clusters;
 
